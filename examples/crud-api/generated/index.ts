@@ -1,0 +1,8 @@
+export * from './registry.gen'
+export * from './mcp.gen'
+export * from './task.gen'
+export * from './task.client.gen'
+export * from './task.crud.gen'
+export * from './client-runtime.gen'
+export { SmithyError } from './errors'
+export type { SmithyErrorShape } from './errors'

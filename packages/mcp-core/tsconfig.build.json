@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    // The stdio transport (src/stdio.ts) is the one Node-only file and needs the
+    // node typings (`process`). ARCH-01 stays enforced at the import level by
+    // eslint (no `node:*` outside src/stdio.ts), not by withholding ambient types.
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
+}

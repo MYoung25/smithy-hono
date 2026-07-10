@@ -1,0 +1,74 @@
+{
+  "name": "@smithy-hono/security-core",
+  "version": "0.2.3",
+  "type": "module",
+  "description": "Runtime-agnostic security primitives for smithy-hono services (Web-standard APIs only, ARCH-01). Storage interfaces, config-injection convention, and dev-only in-memory implementations.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "default": "./dist/storage/index.js"
+    },
+    "./storage/memory": {
+      "types": "./dist/storage/memory.d.ts",
+      "default": "./dist/storage/memory.js"
+    },
+    "./storage/conformance": {
+      "types": "./dist/storage/conformance.d.ts",
+      "default": "./dist/storage/conformance.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline/index.d.ts",
+      "default": "./dist/pipeline/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/session.d.ts",
+      "default": "./dist/auth/session.js"
+    },
+    "./auth/oidc": {
+      "types": "./dist/auth/oidc.d.ts",
+      "default": "./dist/auth/oidc.js"
+    },
+    "./auth/routes": {
+      "types": "./dist/auth/routes.d.ts",
+      "default": "./dist/auth/routes.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "jose": "^5.9.0"
+  },
+  "peerDependencies": {
+    "hono": ">=4.7.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "hono": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "license": "Apache-2.0"
+}

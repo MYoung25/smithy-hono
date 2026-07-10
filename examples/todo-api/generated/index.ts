@@ -1,0 +1,8 @@
+export * from './permissions.gen'
+export * from './registry.gen'
+export * from './mcp.gen'
+export * from './todo.gen'
+export * from './todo.client.gen'
+export * from './client-runtime.gen'
+export { SmithyError } from './errors'
+export type { SmithyErrorShape } from './errors'
