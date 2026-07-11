@@ -1,0 +1,210 @@
+name: Live Conformance
+
+# Runs the adapter storage conformance suites against REAL backends (Redis,
+# DynamoDB Local) via service containers, plus the adapters' in-process fake
+# suites and typechecks. The fakes prove adapter logic + the atomicity contract;
+# these jobs prove the real backends honor that contract (strong consistency:
+# rate-limit no-overspend, nonce exactly-once).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least-privilege baseline (CI-CD-04): these jobs only read the repo and talk to
+# ephemeral service containers; no write scopes or repo secrets are needed.
+permissions:
+  contents: read
+
+jobs:
+  adapter-node:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Build security-core + data-core (adapters import their dist)
+        run: |
+          npm install -w @smithy-hono/security-core -w @smithy-hono/data-core
+          npm -w @smithy-hono/security-core run build
+          npm -w @smithy-hono/data-core run build
+      - name: Install live client (ioredis)
+        run: npm install ioredis@^5 --no-save --no-package-lock --workspaces=false --ignore-scripts
+      - name: Typecheck
+        working-directory: packages/adapter-node
+        run: npx tsc --noEmit -p tsconfig.json
+      # Plan 13 (P5): `vitest run` exercises the security stores' live conformance
+      # AND the DataStore<T> live conformance (live.dataStore.test.ts) against the
+      # same Redis service — versioned-write Lua CAS + declared-index SETs.
+      - name: 'Conformance (fakes + LIVE Redis: security stores + DataStore)'
+        working-directory: packages/adapter-node
+        run: REDIS_URL=redis://localhost:6379 npx vitest run
+
+  adapter-aws:
+    runs-on: ubuntu-latest
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local
+        ports: ['8000:8000']
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Build security-core + data-core (adapters import their dist)
+        run: |
+          npm install -w @smithy-hono/security-core -w @smithy-hono/data-core
+          npm -w @smithy-hono/security-core run build
+          npm -w @smithy-hono/data-core run build
+      - name: Install live clients (@aws-sdk/*)
+        run: npm install @aws-sdk/client-dynamodb@^3 @aws-sdk/lib-dynamodb@^3 --no-save --no-package-lock --workspaces=false --ignore-scripts
+      - name: Typecheck
+        working-directory: packages/adapter-aws
+        run: npx tsc --noEmit -p tsconfig.json
+      # Plan 13 (P6): `vitest run` exercises the security stores' live conformance
+      # AND the DataStore<T> live conformance (live.dynamodb.dataStore.test.ts)
+      # against the same DynamoDB-Local service — conditional-write version CAS,
+      # GSI Query filter, `Select: 'COUNT'`, and LastEvaluatedKey pagination.
+      - name: 'Conformance (fakes + LIVE DynamoDB: security stores + DataStore + real Lambda decode)'
+        working-directory: packages/adapter-aws
+        run: DYNAMODB_ENDPOINT=http://localhost:8000 npx vitest run
+
+  adapter-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: shono
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Build data-core (adapter-postgres imports its dist)
+        run: |
+          npm install -w @smithy-hono/data-core
+          npm -w @smithy-hono/data-core run build
+      - name: Install live client (pg)
+        run: npm install pg@^8 --no-save --no-package-lock --workspaces=false --ignore-scripts
+      - name: Typecheck
+        working-directory: packages/adapter-postgres
+        run: npx tsc --noEmit -p tsconfig.build.json
+      # Plan 13 (D7): Postgres is the recommended durable store of record for the
+      # Node deployment. The live DataStore<T> conformance (live.postgres.dataStore.test.ts)
+      # runs against the postgres:16-alpine service — versioned CAS, JSONB
+      # WHERE value->>'field' filter + COUNT(*), and opaque-cursor pagination.
+      - name: 'Conformance (fakes + LIVE Postgres: DataStore)'
+        working-directory: packages/adapter-postgres
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/shono
+        run: npx vitest run
+
+  adapter-cf:
+    # No Docker — miniflare runs the real Workers runtime (KV + Durable Objects +
+    # D1) in-process for the live conformance suite.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Build security-core + data-core + realtime (adapter-cf imports their dist)
+        run: |
+          # Full workspace install (NOT `-w <subset>`): realtime's own build imports
+          # @smithy-hono/data-core (a workspace peer/devDep), which only resolves when
+          # every workspace is linked. --ignore-scripts skips prepare builds; the needed
+          # dists are built explicitly below, in dependency order.
+          npm ci --ignore-scripts
+          npm -w @smithy-hono/security-core run build
+          npm -w @smithy-hono/data-core run build
+          # adapter-cf's realtimeDurableObject.ts imports @smithy-hono/realtime (and its
+          # /conformance subpath in tests); tsc needs realtime's built dist to resolve
+          # them, else TS2307 cascades into implicit-any errors across that file.
+          npm -w @smithy-hono/realtime run build
+      - name: Install live runtime (miniflare, esbuild)
+        run: npm install miniflare@^3 esbuild@^0.24 --no-save --no-package-lock --workspaces=false --ignore-scripts
+      - name: Typecheck
+        working-directory: packages/adapter-cf
+        run: npx tsc --noEmit -p tsconfig.json
+      # Plan 13 (P6): `CF_LIVE=1 vitest run` exercises the security stores' live
+      # conformance AND the DataStore<T> live conformance
+      # (live.miniflare.dataStore.test.ts) — real D1 SQL CAS + WHERE filter/count
+      # + opaque-cursor pagination, and the real KV key-access subset.
+      - name: 'Conformance (fakes + LIVE miniflare: security stores + D1/KV DataStore)'
+        working-directory: packages/adapter-cf
+        run: CF_LIVE=1 npx vitest run
+
+  crud-deploy-smoke:
+    # Account-free DEPLOY smoke: bundle the REAL deploy/cf-crud Worker (generated
+    # Task router + createDefaultTaskOperations over a D1-backed DataStore) and run
+    # it under in-process miniflare against a real D1 database — the full CRUD
+    # lifecycle end-to-end. No `wrangler deploy`, no Cloudflare account. Static-asset
+    # (UI) serving is platform-declarative (wrangler.toml [assets]), not worker
+    # logic, so it's out of scope here (covered by the manual `wrangler dev` check
+    # in deploy/cf-crud/README).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      # --ignore-scripts: skip install-time `prepare` builds (adapters sort before
+      # security-core and can't build until its dist exists). Build the dist the
+      # worker's import graph needs, in dependency order (adapter-cf imports
+      # security-core, data-core, AND realtime).
+      - name: Build workspace packages the worker imports
+        run: |
+          npm ci --ignore-scripts
+          npm -w @smithy-hono/security-core run build
+          npm -w @smithy-hono/data-core run build
+          # adapter-cf's realtimeDurableObject.ts imports @smithy-hono/realtime — build
+          # it before adapter-cf or that build can't resolve the module.
+          npm -w @smithy-hono/realtime run build
+          npm -w @smithy-hono/adapter-cf run build
+          # createCrudApp mounts /mcp via @smithy-hono/mcp-core; the crud-api example
+          # installs it as a file: tarball (packed below), so build it too. mcp-core is
+          # standalone (zod only), so order vs the others does not matter.
+          npm -w @smithy-hono/mcp-core run build
+      # The crud-api example consumes security-core + data-core + mcp-core as file:
+      # tarballs; pack them (dist already built) so its install resolves them as real copies.
+      - name: Pack security-core + data-core + mcp-core tarballs
+        run: |
+          (cd packages/security-core && npm pack --ignore-scripts)
+          (cd packages/data-core && npm pack --ignore-scripts)
+          (cd packages/mcp-core && npm pack --ignore-scripts)
+      # Install the example deps (hono/@hono/zod-validator/zod + the tarballs).
+      # --no-package-lock avoids the stale @smithy-hono/* tarball integrity hashes.
+      - name: Install crud-api example + live runtime (miniflare, esbuild)
+        working-directory: examples/crud-api
+        # --ignore-scripts (CI-CD-04): don't auto-run install-time lifecycle
+        # scripts from the example's dependency tree on untrusted fork PRs.
+        run: |
+          npm install --no-package-lock --ignore-scripts
+          npm install miniflare@^3 esbuild@^0.24 --no-save --no-package-lock --ignore-scripts
+      # esbuild (smoke + wrangler) STRIPS types without checking them, so this tsc
+      # pass is the only real type gate on the deploy Worker entry. Runs after the
+      # example install so the generated router's deps resolve.
+      - name: Typecheck the deploy Worker
+        run: npx tsc --noEmit -p deploy/cf-crud/tsconfig.json
+      - name: 'Deploy smoke (LIVE miniflare: deploy/cf-crud Worker over D1)'
+        working-directory: examples/crud-api
+        run: CF_LIVE=1 npx vitest run test/deploy-cf-smoke.test.ts

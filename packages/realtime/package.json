@@ -1,0 +1,46 @@
+{
+  "name": "@smithy-hono/realtime",
+  "version": "0.2.4",
+  "type": "module",
+  "description": "Opt-in realtime notify-hub runtime for smithy-hono @live resources. A backend-agnostic RealtimeHub port with a poll-anywhere PollingHub and an in-process MemoryHub, a notify-on-commit DataStore decorator (withLiveNotify), a hono streamSSE endpoint bridge, and a shared conformance suite. Web-standard APIs only (ARCH-01).",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./conformance": {
+      "types": "./dist/conformance.d.ts",
+      "default": "./dist/conformance.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:ci": "vitest run --exclude '**/live.*.test.ts'",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "@smithy-hono/data-core": "^0.2.4",
+    "hono": ">=4.7.0"
+  },
+  "devDependencies": {
+    "@smithy-hono/data-core": "^0.2.4",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "hono": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "license": "Apache-2.0"
+}

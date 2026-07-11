@@ -1,0 +1,7 @@
+# Cloudflare Pages config for the smithy-hono documentation site.
+# `wrangler pages deploy` reads `name` + `pages_build_output_dir` from here, so
+# the CI deploy step needs no flags. The custom domain (smithy-hono.com) is
+# attached out-of-band — see scripts/setup-cloudflare-pages.sh.
+name = "smithy-hono"
+pages_build_output_dir = "build"
+compatibility_date = "2024-09-23"

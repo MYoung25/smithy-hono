@@ -1,0 +1,11 @@
+{
+  "name": "smithy-hono-typecheck",
+  "private": true,
+  "devDependencies": {
+    "@hono/zod-validator": "^0.4.3",
+    "@smithy-hono/security-core": "file:../packages/security-core/smithy-hono-security-core-0.2.4.tgz",
+    "hono": "^4.12.25",
+    "typescript": "^5.4.0",
+    "zod": "^3.24.0"
+  }
+}

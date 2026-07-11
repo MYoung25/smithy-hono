@@ -1,0 +1,55 @@
+{
+  "name": "@smithy-hono/adapter-cf",
+  "version": "0.2.4",
+  "type": "module",
+  "description": "Cloudflare (Workers KV + Durable Objects) runtime adapter for @smithy-hono/security-core. Implements the four storage interfaces plus platform glue (forwarded-proto / client-IP resolvers, console logger, SecretProvider) over narrow structural ports — no Cloudflare SDK at runtime (ARCH-01).",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./test-support": {
+      "types": "./dist/test-support.d.ts",
+      "default": "./dist/test-support.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:ci": "vitest run --exclude '**/live.*.test.ts'",
+    "test:watch": "vitest",
+    "lint": "eslint src",
+    "typecheck:test": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@smithy-hono/data-core": "^0.2.4",
+    "@smithy-hono/realtime": "^0.2.4",
+    "@smithy-hono/security-core": "^0.2.4",
+    "hono": ">=4.7.0"
+  },
+  "devDependencies": {
+    "@smithy-hono/data-core": "^0.2.4",
+    "@smithy-hono/realtime": "^0.2.4",
+    "@typescript-eslint/parser": "^8.0.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.0.0",
+    "hono": "^4.7.0",
+    "miniflare": "^3.20240909.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "//optionalDevDependencies": {
+    "@cloudflare/workers-types": "Install ONLY in a consumer that wants the real Cloudflare ambient types. This package defines its own minimal structural platform types (KvNamespaceLike, DurableStorageLike, ...) and intentionally does NOT depend on the SDK so it typechecks and tests with root-hoisted tooling only."
+  },
+  "license": "Apache-2.0"
+}

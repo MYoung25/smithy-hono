@@ -1,0 +1,8 @@
+com.smithyhono.traits.RequiresAuthTrait$Provider
+com.smithyhono.traits.SseEventTrait$Provider
+com.smithyhono.traits.CostTrait$Provider
+com.smithyhono.traits.Sigv4HmacTrait$Provider
+com.smithyhono.traits.SseStreamTrait$Provider
+com.smithyhono.traits.PersistedTrait$Provider
+com.smithyhono.traits.LiveTrait$Provider
+com.smithyhono.traits.McpPromptsTrait$Provider

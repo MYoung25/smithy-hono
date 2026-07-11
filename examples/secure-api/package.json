@@ -1,0 +1,28 @@
+{
+  "name": "smithy-hono-secure-example",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@hono/node-server": "^1.13.0",
+    "@hono/zod-validator": "^0.4.3",
+    "@smithy-hono/adapter-node": "file:../../packages/adapter-node/smithy-hono-adapter-node-0.2.4.tgz",
+    "@smithy-hono/data-core": "file:../../packages/data-core/smithy-hono-data-core-0.2.4.tgz",
+    "@smithy-hono/security-core": "file:../../packages/security-core/smithy-hono-security-core-0.2.4.tgz",
+    "hono": "4.12.23",
+    "ioredis": "^5.4.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "scripts": {
+    "start:redis": "tsx src/index.ts",
+    "dev": "tsx watch src/devServer.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
