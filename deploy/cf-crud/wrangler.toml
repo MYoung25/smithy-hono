@@ -1,0 +1,52 @@
+# Cloudflare Worker config for the zero-handler CRUD demo (examples/crud-api)
+# served full-stack on Workers: the generated Task router backed by a D1 DataStore
+# (@smithy-hono/adapter-cf), with the React UI (examples/crud-ui) served as static
+# assets from the same Worker so the browser talks same-origin (no CORS) — exactly
+# like the Vite dev proxy in examples/crud-ui/vite.config.ts.
+#
+# Unlike deploy/cf (the security backend), this demo uses NO Durable Objects and
+# NO Workers KV for the data path — just D1 — so it runs on the Cloudflare FREE
+# plan. (deploy/cf needs Workers Paid because Durable Objects do.)
+#
+# ARCH-01: web-standard APIs only. The real D1Database binding structurally
+# satisfies the adapter's narrow D1DatabaseLike port; no @cloudflare/workers-types
+# or Cloudflare SDK is imported.
+
+name = "smithy-hono-crud"
+main = "src/worker.ts"
+compatibility_date = "2024-09-23"
+
+# Fill in your Cloudflare account id (`wrangler whoami`) or export CLOUDFLARE_ACCOUNT_ID.
+# account_id = "<your-account-id>"
+
+# ---------------------------------------------------------------------------
+# Static assets — the built React UI (examples/crud-ui). With a `main` Worker
+# present, Workers serves a matching asset first and falls through to the Worker
+# on a miss, so `/` and `/assets/*` are the SPA and `/tasks*` (no asset match)
+# reaches the Hono router below. Build the UI first: `cd ../../examples/crud-ui
+# && npm run build` (emits dist/).
+# ---------------------------------------------------------------------------
+[assets]
+directory = "../../examples/crud-ui/dist"
+
+# ---------------------------------------------------------------------------
+# D1 — backs the Task DataStore (createD1DataStore over createD1DataPort). D1 is
+# strongly-consistent SQL, so it supports the whole DataStore contract (versioned
+# CAS, filter, count, soft-delete, opaque-cursor pagination).
+#
+# Binding name MUST be `DB` — the worker reads `env.DB` (src/worker.ts).
+# Create the database and paste its id below:
+#   wrangler d1 create crud-tasks
+#   # → copy the printed `database_id = "..."` here.
+# Then apply the schema migration (see migrations/0001_init.sql):
+#   wrangler d1 migrations apply crud-tasks            # remote
+#   wrangler d1 migrations apply crud-tasks --local    # local dev / miniflare
+# ---------------------------------------------------------------------------
+[[d1_databases]]
+binding = "DB"
+database_name = "crud-tasks"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"   # ← from `wrangler d1 create crud-tasks`
+migrations_dir = "migrations"
+
+[observability]
+enabled = true

@@ -1,0 +1,44 @@
+{
+  "name": "@smithy-hono/client-web",
+  "version": "0.2.5",
+  "type": "module",
+  "description": "Browser auth helper for smithy-hono services. Drives the security-core OIDC cookie-session flow (login redirect, callback exchange, CSRF synchronizer token, logout) from a single-page app and wires it into the GENERATED typed client via its `fetch`/`headers` injection points — `credentials: 'include'` plus the in-memory CSRF token, with automatic refresh-and-retry on token rotation. Web-standard only (ARCH-01): fetch / URL / crypto-free; no `hono`, no `node:*`, no SDK.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./test-support": {
+      "types": "./dist/test-support.d.ts",
+      "default": "./dist/test-support.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoung25/smithy-hono.git",
+    "directory": "packages/client-web"
+  }
+}

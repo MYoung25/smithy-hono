@@ -1,0 +1,46 @@
+{
+  "name": "@smithy-hono/test-kit",
+  "version": "0.2.5",
+  "type": "module",
+  "description": "Testing toolkit for smithy-hono services. Drive the GENERATED typed client against your router/pipeline in-process (no network): unit harness (router + stand-in principal), integration harness (full security pipeline + in-memory stores), auth helpers (loginAs cookie+CSRF, asService HMAC signing), builders, runner-agnostic assertions, and an in-memory MCP client. Web-standard only (ARCH-01).",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "@smithy-hono/security-core": "^0.2.5",
+    "hono": ">=4.7.0"
+  },
+  "devDependencies": {
+    "@smithy-hono/security-core": "^0.2.5",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "hono": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoung25/smithy-hono.git",
+    "directory": "packages/test-kit"
+  }
+}

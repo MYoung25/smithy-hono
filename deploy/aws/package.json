@@ -1,0 +1,34 @@
+{
+  "name": "@smithy-hono/deploy-aws",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "description": "AWS CDK (TypeScript) infrastructure-as-code for the @smithy-hono/adapter-aws backends (OPS-02): DynamoDB table, Secrets Manager signing keys, and a sample Lambda handler wiring the adapter into the security-core pipeline.",
+  "bin": {
+    "smithy-hono-aws": "bin/app.ts"
+  },
+  "scripts": {
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "deploy": "cdk deploy",
+    "diff": "cdk diff",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/client-secrets-manager": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "@smithy-hono/adapter-aws": "file:../../packages/adapter-aws",
+    "@smithy-hono/security-core": "file:../../packages/security-core/smithy-hono-security-core-0.2.5.tgz",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "aws-cdk": "^2.150.0",
+    "aws-cdk-lib": "^2.150.0",
+    "constructs": "^10.3.0",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0"
+  }
+}

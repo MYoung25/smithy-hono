@@ -1,0 +1,21 @@
+{
+  "name": "smithy-hono",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm -w @smithy-hono/security-core run build",
+    "test": "npm -w @smithy-hono/security-core run test",
+    "lint": "npm -w @smithy-hono/security-core run lint",
+    "deploy": "npm -w @smithy-hono/deploy-cf run build >/dev/null 2>&1; cd deploy/cf-secure && node ../../packages/deploy-cf/dist/bin/deploy.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.20.0"
+  },
+  "license": "Apache-2.0"
+}

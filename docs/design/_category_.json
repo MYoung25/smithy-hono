@@ -1,0 +1,9 @@
+{
+  "label": "Design docs",
+  "position": 7,
+  "link": {
+    "type": "generated-index",
+    "title": "Design docs",
+    "description": "Forward-looking RFC-style design notes for smithy-hono capabilities."
+  }
+}

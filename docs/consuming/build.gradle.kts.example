@@ -1,0 +1,54 @@
+// Consumer Gradle config for the smithy-hono codegen plugin (Maven jar).
+//
+// The jar publishes to Maven Central with the next release. Until then, build it
+// from source: clone this repo and run `./gradlew publishToMavenLocal`, and the
+// `mavenLocal()` repo below resolves it. No auth or registry token is needed
+// either way — Maven Central and mavenLocal are both unauthenticated.
+//
+// IMPORTANT NOTES (these are the gaps a real consumer hits):
+//
+//  1) The `java` plugin MUST be applied. The Smithy `smithy-base` Gradle plugin
+//     only creates the `smithyBuild` configuration when `java` is present;
+//     without it, `add("smithyBuild", ...)` silently does nothing and the
+//     traits (@persisted, @sigv4Hmac, ...) fail to resolve.
+//
+//  2) `mavenLocal()` is listed FIRST so a locally-published build (./gradlew
+//     publishToMavenLocal in the smithy-hono repo) is picked up during local dev.
+//
+//  3) `outputDirectory` in smithy-build.json is NOT honored by the Gradle plugin.
+//     Generated code always lands in
+//       build/smithyprojections/<root>/source/hono-codegen/
+//     The `syncGeneratedCode` task below copies it into src/generated, EXCLUDING
+//     *.template.ts (those are copy-once references, not live output). Wire your
+//     npm "codegen" script to run: ./gradlew syncGeneratedCode
+
+plugins {
+    java                                                   // REQUIRED — see note (1)
+    id("software.amazon.smithy.gradle.smithy-base") version "1.2.0"
+}
+
+repositories {
+    mavenLocal()                                           // ./gradlew publishToMavenLocal build — note (2)
+    mavenCentral()                                         // the plugin publishes here with the next release
+}
+
+dependencies {
+    // Puts the plugin (and its Smithy deps + trait providers) on the Smithy build
+    // classpath so the Smithy worker discovers HonoCodegenPlugin via ServiceLoader.
+    add("smithyBuild", "com.smithy-hono:smithy-hono:0.2.2")
+}
+
+// NOTE: the jar does NOT ship loadable trait definitions — copy this repo's
+// model/traits.smithy into your model/ sources, or `use com.smithyhono#persisted`
+// fails model assembly ("undefined shape"). See docs/consuming/building-a-server.md.
+
+// Copy generated TypeScript into the server source tree — see note (3).
+tasks.register<Copy>("syncGeneratedCode") {
+    dependsOn("smithyBuild")
+    val gen = layout.buildDirectory.dir("smithyprojections/${project.name}/source/hono-codegen")
+    from(gen) {
+        include("*.ts")
+        exclude("*.template.ts")    // copy-once references (e.g. events.template.ts) — never overwrite
+    }
+    into("src/generated")
+}

@@ -1,0 +1,49 @@
+{
+  "name": "@smithy-hono/data-core",
+  "version": "0.2.5",
+  "type": "module",
+  "description": "Runtime-agnostic persistence port for smithy-hono default CRUD (Web-standard APIs only, ARCH-01). The DataStore<T> interface, a dev-only in-memory implementation, and a shared conformance suite.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./memory": {
+      "types": "./dist/memory.d.ts",
+      "default": "./dist/memory.js"
+    },
+    "./conformance": {
+      "types": "./dist/conformance.d.ts",
+      "default": "./dist/conformance.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:ci": "vitest run --exclude '**/live.*.test.ts'",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoung25/smithy-hono.git",
+    "directory": "packages/data-core"
+  }
+}

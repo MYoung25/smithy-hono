@@ -1,0 +1,9 @@
+# Docusaurus
+/node_modules
+/build
+/.docusaurus
+
+# Misc
+.DS_Store
+*.log
+npm-debug.log*

@@ -1,0 +1,71 @@
+{
+  "name": "@smithy-hono/adapter-aws",
+  "version": "0.2.5",
+  "type": "module",
+  "description": "AWS (DynamoDB + Secrets Manager) runtime adapter for @smithy-hono/security-core. Implements the four storage interfaces (strongly-consistent rate-limit + nonce via DynamoDB conditional writes / CAS) plus platform glue (forwarded-proto / client-IP resolvers, CloudWatch console logger) over narrow structural ports — no @aws-sdk at runtime (ARCH-01).",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./test-support": {
+      "types": "./dist/test-support.d.ts",
+      "default": "./dist/test-support.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:ci": "vitest run --exclude '**/live.*.test.ts'",
+    "test:watch": "vitest",
+    "lint": "eslint src",
+    "typecheck:test": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@smithy-hono/data-core": "^0.2.5",
+    "@smithy-hono/security-core": "^0.2.5",
+    "hono": ">=4.7.0"
+  },
+  "peerDependenciesMeta": {
+    "@aws-sdk/client-dynamodb": {
+      "optional": true
+    },
+    "@aws-sdk/lib-dynamodb": {
+      "optional": true
+    },
+    "@aws-sdk/client-secrets-manager": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "@smithy-hono/data-core": "^0.2.5",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "hono": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "//optionalPeerDependencies": {
+    "@aws-sdk/client-dynamodb": "Install ONLY in the consumer Lambda/service. This package speaks to DynamoDB through the narrow structural DynamoSendLike port (a `{ send(command): Promise<any> }` shape) and intentionally does NOT depend on the SDK, so it typechecks and tests with root-hoisted tooling only.",
+    "@aws-sdk/lib-dynamodb": "Install in the consumer if using DynamoDBDocumentClient (recommended — native JS values, no AttributeValue marshalling). Satisfies DynamoSendLike directly.",
+    "@aws-sdk/client-secrets-manager": "Install in the consumer for SecretProvider. This package speaks to Secrets Manager through the structural SecretsSourceLike port; wire SecretsManagerClient.send(new GetSecretValueCommand(...)) behind it."
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoung25/smithy-hono.git",
+    "directory": "packages/adapter-aws"
+  }
+}

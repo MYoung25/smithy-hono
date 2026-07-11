@@ -1,0 +1,9 @@
+# Keep build contexts lean and deterministic — never ship host build output.
+**/node_modules
+**/dist
+**/*.tgz
+.git
+.gradle
+build
+**/.vitest-passed
+typecheck/generated

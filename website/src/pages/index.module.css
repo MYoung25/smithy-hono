@@ -1,0 +1,85 @@
+/* Landing hero — brand-orange gradient over the classic theme tokens. */
+
+.hero {
+  padding: 4rem 0 4.5rem;
+  background: linear-gradient(160deg, #fff7f0 0%, #ffe9d6 100%);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .hero {
+  background: linear-gradient(160deg, #211913 0%, #17110d 100%);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.heroInner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+.heroCopy {
+  text-align: left;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
+  margin-bottom: 0.75rem;
+}
+
+.heroTitle {
+  font-size: 3.4rem;
+  line-height: 1.05;
+  margin: 0 0 1rem;
+}
+
+.heroTagline {
+  font-size: 1.25rem;
+  color: var(--ifm-color-emphasis-800);
+  margin-bottom: 2rem;
+  max-width: 34ch;
+}
+
+.buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.heroCode {
+  min-width: 0;
+}
+
+.codeLabel {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
+  color: var(--ifm-color-emphasis-600);
+  margin: 0 0 0.35rem 0.15rem;
+}
+
+.codeArrow {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ifm-color-primary);
+  text-align: center;
+  margin: 0.35rem 0 0.75rem;
+}
+
+@media (max-width: 996px) {
+  .heroInner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .heroTitle {
+    font-size: 2.6rem;
+  }
+  .heroTagline {
+    max-width: none;
+  }
+}

@@ -1,0 +1,80 @@
+# Cloudflare Worker config for a @smithy-hono/security-core service backed by
+# @smithy-hono/adapter-cf (OPS-02 — cf infrastructure-as-code).
+#
+# Provisions exactly the backends the adapter reads (verified against the adapter
+# source — citations in deploy/cf/README.md):
+#   - one Workers KV namespace  -> SessionStore   (KvSessionStore)
+#   - one Durable Object class   -> RateLimit + Nonce stores (strong/serial)
+#   - one env secret             -> EnvSecretProvider HMAC key material
+#
+# Placeholder IDs below are filled in at deploy time (see README). Nothing here
+# is account-specific except the IDs you paste in — keep real IDs out of VCS if
+# your account treats them as sensitive (the KV/DO ids are not secrets, but the
+# HMAC key material is and is provisioned via `wrangler secret`, never here).
+
+name = "smithy-hono-security"
+main = "src/worker.ts"
+compatibility_date = "2024-09-23"
+
+# Fill in with your Cloudflare account id (`wrangler whoami`, or
+# dash → Workers & Pages → Account ID). Can also be supplied via the
+# CLOUDFLARE_ACCOUNT_ID env var instead of committing it.
+# account_id = "<your-account-id>"
+
+# ---------------------------------------------------------------------------
+# Workers KV — backs SessionStore (KvSessionStore). Eventual consistency is
+# ACCEPTED for sessions per the plan (the absolute-expiry ceiling is enforced
+# in-band on every read, independent of KV TTL).
+#
+# Binding name MUST be `SESSIONS` — the worker reads `env.SESSIONS`
+# (deploy/cf/src/worker.ts) and the live-conformance backend uses the same name
+# (packages/adapter-cf/src/live.miniflare.test.ts: `kvNamespaces: ['SESSIONS']`).
+#
+# Create the namespace and paste its id below:
+#   wrangler kv:namespace create SESSIONS
+#   # → copy the printed `id = "..."` here. For `wrangler dev`/miniflare also run
+#   #   `wrangler kv:namespace create SESSIONS --preview` and set `preview_id`.
+# ---------------------------------------------------------------------------
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"           # ← from `wrangler kv:namespace create SESSIONS`
+# preview_id = "REPLACE_WITH_KV_PREVIEW_ID"    # ← from `... create SESSIONS --preview` (dev only)
+
+# ---------------------------------------------------------------------------
+# Durable Object — backs RateLimitStore (DurableRateLimitStore) + NonceStore
+# (DurableNonceStore). These MUST be a DO, not KV: Cloudflare runs each object
+# single-threaded and serial, so the read-modify-write `consume` / `checkAndStore`
+# is atomic (no overspend, exactly-once). KV is eventually consistent and would
+# break both guarantees.
+#
+# Binding name MUST be `SECURITY_DO` and class MUST be `SecurityDurableObject`:
+#   - the worker reads `env.SECURITY_DO.get(env.SECURITY_DO.idFromName(key))`
+#     (deploy/cf/src/worker.ts), and re-exports `SecurityDurableObject`.
+#   - the class name is the one the adapter exports and documents
+#     (packages/adapter-cf/src/durableObject.ts: `export class SecurityDurableObject`).
+#   - the live-conformance backend binds the same name
+#     (packages/adapter-cf/src/live.miniflare.test.ts:
+#      `durableObjects: { SECURITY_DO: 'SecurityDO' }`).
+# ---------------------------------------------------------------------------
+[[durable_objects.bindings]]
+name = "SECURITY_DO"
+class_name = "SecurityDurableObject"
+
+# DO migration: register the class so Cloudflare provisions its storage. The
+# class is brand-new in this Worker, so it goes in `new_classes`. Bump the tag
+# (v2, v3, …) only if you later rename/delete the class.
+[[migrations]]
+tag = "v1"
+new_classes = ["SecurityDurableObject"]
+
+# ---------------------------------------------------------------------------
+# Secrets — NOT declared here (they must never be committed). The worker reads
+# the demo client's HMAC key material from `env.HMAC_KEY_2026A`
+# (deploy/cf/src/worker.ts -> EnvSecretProvider), lowercase-hex encoded.
+# Provision it out-of-band:
+#   wrangler secret put HMAC_KEY_2026A      # paste the hex key material when prompted
+# See packages/adapter-cf/src/secrets.ts for the hex encoding requirement.
+# ---------------------------------------------------------------------------
+
+[observability]
+enabled = true   # structured console logs → Logpush (createConsoleLogger emits one JSON line/record)

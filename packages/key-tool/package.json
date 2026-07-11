@@ -1,0 +1,61 @@
+{
+  "name": "@smithy-hono/key-tool",
+  "version": "0.2.5",
+  "type": "module",
+  "description": "S2S signing-key lifecycle library + CLI for @smithy-hono/security-core (OPS-03): provision, rotate (with an overlap window so in-flight requests still verify), and revoke a client's HMAC signing key against a runtime adapter's write backend (Redis / Secrets Manager / Workers-KV directory), emitting key.rotate audit events. The lifecycle/keygen library is web-standard and portable; the CLI is node-only.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "bin": {
+    "key-tool": "./dist/bin/key-tool.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:ci": "vitest run --exclude '**/live.*.test.ts'",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "@smithy-hono/adapter-node": "^0.2.5",
+    "@smithy-hono/security-core": "^0.2.5",
+    "ioredis": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@smithy-hono/adapter-node": {
+      "optional": true
+    },
+    "ioredis": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@smithy-hono/adapter-node": "^0.2.5",
+    "@smithy-hono/security-core": "^0.2.5",
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "ioredis": "^5.4.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoung25/smithy-hono.git",
+    "directory": "packages/key-tool"
+  }
+}

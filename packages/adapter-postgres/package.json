@@ -1,0 +1,57 @@
+{
+  "name": "@smithy-hono/adapter-postgres",
+  "version": "0.2.5",
+  "type": "module",
+  "description": "Postgres-backed DataStore<T> for @smithy-hono/data-core (Plan 13 D7) — the recommended durable store of record for the Node deployment. A JSONB value column with versioned CAS, server-side WHERE/COUNT filtering on any field, opaque-cursor pagination, and soft-delete, all behind a narrow structural client port — no pg SDK at runtime (ARCH-01).",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:ci": "vitest run --exclude '**/live.*.test.ts'",
+    "test:watch": "vitest",
+    "lint": "eslint src",
+    "typecheck:test": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@smithy-hono/data-core": "^0.2.5",
+    "pg": "^8"
+  },
+  "peerDependenciesMeta": {
+    "pg": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@smithy-hono/data-core": "^0.2.5",
+    "@types/pg": "^8",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "pg": "^8",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "//optionalDevDependencies": {
+    "pg": "The node-postgres driver. Used ONLY by the gated live test (src/live.postgres.dataStore.test.ts) via dynamic import — the runtime source codes against the structural PgClientLike, never `import 'pg'` (ARCH-01). @types/pg is likewise live-test-only and must NOT leak into the src build (tsconfig types:[])."
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoung25/smithy-hono.git",
+    "directory": "packages/adapter-postgres"
+  }
+}
