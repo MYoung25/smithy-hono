@@ -1,0 +1,9 @@
+node_modules
+ui/node_modules
+ui/dist
+.git
+.gradle
+build
+.smithy-deploy-node
+*.tgz
+# Keep src/generated — the running container imports it.

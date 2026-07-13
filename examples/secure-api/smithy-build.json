@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "sources": ["model"],
+  "plugins": {
+    "hono-codegen": {
+      "service": "com.example.secure#SecureService",
+      "outputDirectory": "generated",
+      "packageName": "secure-api",
+      "packageVersion": "0.1.0"
+    }
+  }
+}

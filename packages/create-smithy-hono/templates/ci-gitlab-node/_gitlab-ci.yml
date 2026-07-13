@@ -1,0 +1,78 @@
+# CI/CD for {{APP_SLUG}} — Node target (Docker image + Kubernetes).
+#
+#   build   runs on every push + merge request: Smithy codegen (JDK 21), typecheck,
+#           unit tests, and the SPA build (full-stack only). No credentials needed.
+#   deploy  runs only on the default branch, after a green build: logs in to the
+#           GitLab Container Registry with the built-in CI_JOB_TOKEN (keyless), then
+#           builds/pushes the image and applies the k8s manifests to your cluster.
+#
+# A Kubernetes API server isn't a federated-OIDC endpoint the way AWS STS is, so the
+# cluster credential is a kubeconfig you provide. The registry push, though, is
+# keyless — CI_JOB_TOKEN authenticates to the GitLab registry with no stored password.
+#
+# Configure before the first deploy (Settings → CI/CD → Variables):
+#   KUBECONFIG_B64   base64 of a kubeconfig scoped to the deploy namespace
+#                    (`base64 -w0 < ~/.kube/config`) — set as a File or masked var
+#   DEPLOY_DOMAIN    the TLS host the Ingress serves (needs a cert-manager issuer)
+#   OIDC_CLIENT_SECRET  OIDC apps only — IdP confidential client secret (masked);
+#                    unset for the anonymous scaffold (the step no-ops)
+#
+# The GitLab registry for this project is $CI_REGISTRY_IMAGE — set `registry` in
+# smithy-node-deploy.config.mjs to that value (or override IMAGE_REGISTRY below).
+
+stages: [build, deploy]
+
+default:
+  image: node:24
+  cache:
+    key:
+      files: [package-lock.json]
+    paths: [.npm/]
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  IMAGE_REGISTRY: "$CI_REGISTRY_IMAGE"
+
+.with-jdk: &with-jdk
+  - apt-get update -qq && apt-get install -y -qq openjdk-21-jdk-headless > /dev/null
+
+build:
+  stage: build
+  script:
+    - *with-jdk
+    - npm install
+    - npm run codegen
+    - npm run typecheck
+    - npm test
+    - npm run build:ui --if-present
+
+deploy:
+  stage: deploy
+  # docker-in-docker for the image build/push.
+  image: docker:27
+  services:
+    - docker:27-dind
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "merge_request_event"'
+  environment:
+    name: production
+    url: https://$DEPLOY_DOMAIN
+  before_script:
+    # Node + JDK + kubectl on top of the docker image.
+    - apk add --no-cache nodejs npm openjdk21 kubectl
+    # Keyless login to the project's GitLab Container Registry.
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
+    - mkdir -p "$HOME/.kube" && echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
+  script:
+    - npm install
+    - npm run codegen
+    - |
+      if [ -n "$OIDC_CLIENT_SECRET" ]; then
+        node -e 'require("fs").writeFileSync("deploy.secrets.json", JSON.stringify({ OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET }))'
+      fi
+    - |
+      if [ -n "$DEPLOY_DOMAIN" ]; then
+        npm run deploy -- "$DEPLOY_DOMAIN"
+      else
+        npm run deploy
+      fi

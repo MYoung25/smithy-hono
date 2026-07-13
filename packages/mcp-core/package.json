@@ -1,0 +1,54 @@
+{
+  "name": "@smithy-hono/mcp-core",
+  "version": "0.2.6",
+  "type": "module",
+  "description": "Runtime bridge exposing a generated smithy-hono service as an MCP (Model Context Protocol) server. Web-standard APIs only (ARCH-01): turns the operation metadata registry + emitted Zod schemas into MCP tools over a stateless Streamable-HTTP JSON-RPC endpoint, dispatching in-process through the Hono router.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./stdio": {
+      "types": "./dist/stdio.d.ts",
+      "default": "./dist/stdio.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:ci": "vitest run --exclude '**/live.*.test.ts'",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "zod-to-json-schema": "^3.24.0"
+  },
+  "peerDependencies": {
+    "zod": ">=3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "hono": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0",
+    "zod": "^3.24.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoung25/smithy-hono.git",
+    "directory": "packages/mcp-core"
+  }
+}

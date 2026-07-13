@@ -1,0 +1,9 @@
+{
+  "workspaces": [
+    "ui"
+  ],
+  "scripts": {
+    "build:ui": "npm --prefix ui run build",
+    "dev:ui": "npm --prefix ui run dev"
+  }
+}

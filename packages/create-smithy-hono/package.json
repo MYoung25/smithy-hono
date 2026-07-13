@@ -1,0 +1,39 @@
+{
+  "name": "@smithy-hono/create",
+  "version": "0.2.6",
+  "type": "module",
+  "description": "Scaffold a new smithy-hono app with one command: `npm create @smithy-hono`. Prompts for a deploy target (Cloudflare / Node / AWS), full-stack vs API-only, and auth (none / OIDC), then generates a ready-to-deploy project wired to the matching @smithy-hono/deploy-* CLI so `npm run deploy` puts the UI + API live same-origin.",
+  "bin": {
+    "create-smithy-hono": "./dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoung25/smithy-hono.git",
+    "directory": "packages/create-smithy-hono"
+  }
+}

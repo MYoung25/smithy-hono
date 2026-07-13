@@ -1,0 +1,44 @@
+{
+  "name": "@smithy-hono/deploy-node",
+  "version": "0.2.6",
+  "type": "module",
+  "description": "One-command Node/Docker/Kubernetes deploy for smithy-hono apps: given a domain, builds the API (and optional same-origin SPA front-door) container images, generates + syncs secrets into a k8s Secret, renders the Deployment/Service/Ingress/ConfigMap manifests, and applies them — UI + API same-origin under an /api/* prefix via an nginx reverse proxy. Config-driven via smithy-node-deploy.config.{mjs,json}; node-only CLI.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "bin": {
+    "smithy-hono-deploy-node": "./dist/bin/deploy.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MYoung25/smithy-hono.git",
+    "directory": "packages/deploy-node"
+  }
+}

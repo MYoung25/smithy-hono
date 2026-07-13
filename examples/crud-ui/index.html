@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      Security headers: the production build injects a hardened Content-Security-Policy
+      <meta> here (see cspMetaPlugin in vite.config.ts). The dev server sends CSP +
+      X-Content-Type-Options/Referrer-Policy/X-Frame-Options via server.headers. The
+      static front door (deploy/node-web) must additionally send frame-ancestors,
+      Referrer-Policy, X-Content-Type-Options as real response headers in production.
+    -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tasks · smithy-hono crud-api</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

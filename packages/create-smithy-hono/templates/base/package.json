@@ -1,0 +1,13 @@
+{
+  "name": "{{APP_NAME}}",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "codegen": "./gradlew syncGeneratedCode",
+    "typecheck": "tsc --noEmit"
+  }
+}

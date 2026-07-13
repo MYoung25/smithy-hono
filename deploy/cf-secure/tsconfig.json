@@ -1,0 +1,21 @@
+{
+  "//": "Type-checks the Worker entry (the only real type gate — esbuild/wrangler strip types without checking). This entry reuses the `examples/secure-api` app factory, so two resolution facts differ from the cf-crud worker: (1) the example installs its OWN copies of `@smithy-hono/security-core` + `hono` (tarball + pinned 4.12.x) which DRIFT from the root copies adapter-cf is built against (branded OidcVerifier / hono GET_MATCH_RESULT skew); `paths` below pins BOTH sides of the boundary to the single root copy so the types unify. (2) secure-api uses `node:async_hooks` (AsyncLocalStorage) — a Node builtin Workers provide under the `nodejs_compat` flag — so `types:[node]` is required here (unlike the purely web-standard cf/cf-crud workers).",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@smithy-hono/security-core": ["../../packages/security-core/dist/index.d.ts"],
+      "hono": ["../../node_modules/hono/dist/types/index.d.ts"],
+      "hono/*": ["../../node_modules/hono/dist/types/*"]
+    }
+  },
+  "include": ["src"]
+}

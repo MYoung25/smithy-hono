@@ -1,0 +1,24 @@
+/* smithy-hono docs — minimal theme tweaks on top of the classic preset. */
+
+:root {
+  --ifm-color-primary: #d35400;
+  --ifm-color-primary-dark: #be4c00;
+  --ifm-color-primary-darker: #b34700;
+  --ifm-color-primary-darkest: #943b00;
+  --ifm-color-primary-light: #e85e00;
+  --ifm-color-primary-lighter: #f36200;
+  --ifm-color-primary-lightest: #ff7a1f;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #ff8c42;
+  --ifm-color-primary-dark: #ff7a24;
+  --ifm-color-primary-darker: #ff7115;
+  --ifm-color-primary-darkest: #e35d00;
+  --ifm-color-primary-light: #ff9e60;
+  --ifm-color-primary-lighter: #ffa76f;
+  --ifm-color-primary-lightest: #ffc29c;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}

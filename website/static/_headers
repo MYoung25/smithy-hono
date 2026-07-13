@@ -1,0 +1,8 @@
+# Cloudflare Pages headers. Serve the AI-consumption text/markdown inline as
+# UTF-8 text (otherwise CF Pages offers .md/.txt as a download).
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+/llms-full.txt
+  Content-Type: text/plain; charset=utf-8
+/*.md
+  Content-Type: text/plain; charset=utf-8

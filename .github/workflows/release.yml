@@ -1,0 +1,153 @@
+name: Release (npm + Maven Central)
+
+# Publishes every @smithy-hono/* workspace package to npmjs AND the Smithy→Hono
+# codegen JAR (com.smithy-hono:smithy-hono) to Maven Central, on a version tag.
+# Tags arrive here via the GitLab `mirror-to-github` sync job, which only mirrors
+# `main` after GitLab's full test suite is green — so the code reaching this
+# workflow has already been tested upstream.
+#
+# Auth is npm TRUSTED PUBLISHING (OIDC) — no NPM_TOKEN. GitHub Actions mints a
+# short-lived OIDC token that npm exchanges for a publish credential, and each
+# package must have this repo+workflow registered as its trusted publisher on
+# npmjs (Settings → Trusted Publisher: owner MYoung25, repo smithy-hono,
+# workflow release.yml). NOTE: trusted publishing can't create a package that
+# doesn't exist yet, so all 12 packages must be bootstrap-published once (with a
+# throwaway token) before this OIDC workflow can take over. Provenance is
+# generated automatically under trusted publishing.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+
+permissions:
+  contents: read
+  id-token: write # REQUIRED for trusted publishing (OIDC) — also produces provenance
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.4.0'
+          registry-url: 'https://registry.npmjs.org' # points npm at npmjs; OIDC (not a token) authenticates the publish
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Upgrade npm to a trusted-publishing-capable version (>= 11.5.1)
+        # Node 24.4.0 bundles npm ~11.4, below the 11.5.1 floor for OIDC trusted publishing.
+        # Pin to the 11.x line, NOT npm@latest: npm@12 raised its engine floor to
+        # node ^24.15.0, so `npm@latest` on this pinned node 24.4.0 fails EBADENGINE.
+        # 11.x (currently 11.12.1) clears the 11.5.1 floor and supports node 24.4.0.
+        run: npm install -g npm@11
+
+      - name: Lockstep guard — tag must match every workspace package version
+        # Same guard as the GitLab publish job: the tag's version must equal EVERY
+        # shipped workspace package's version, so a stale version anywhere fails the
+        # release before any package is published (no partial releases).
+        run: |
+          export TAG_VERSION="${GITHUB_REF_NAME#v}"
+          npm pkg get version --workspaces --json | node -e '
+            const versions = JSON.parse(require("fs").readFileSync(0, "utf8"));
+            const tag = process.env.TAG_VERSION;
+            let mismatch = false;
+            for (const [name, version] of Object.entries(versions)) {
+              if (version !== tag) {
+                console.error(`Tag v${tag} (${tag}) != ${name} version ${version}`);
+                mismatch = true;
+              }
+            }
+            if (mismatch) {
+              console.error("Workspace package versions are not in lockstep with the tag — bump all versions before tagging.");
+              process.exit(1);
+            }
+            console.log(`All ${Object.keys(versions).length} workspace packages match tag version ${tag}.`);
+          '
+
+      - name: Install workspace devDeps
+        # --ignore-scripts skips install-time `prepare` builds (adapters sort before
+        # security-core and can't build until its dist exists). Each `npm publish -w`
+        # below runs that package's own prepare at publish time, in dependency order.
+        run: npm ci --ignore-scripts
+
+      - name: Publish all packages in dependency order
+        # No token/env: npm auto-detects the GitHub OIDC environment and uses the
+        # trusted publisher configured for each package on npmjs.
+        run: |
+          set -e
+          # Each `run:` is a fresh shell — re-derive the tag version (the lockstep
+          # guard's export doesn't carry over here).
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          # DEPENDENCY ORDER — a dep must publish (and thus build) before any dependent.
+          # Keep in sync with .gitlab-ci.yml's PUBLISH_ORDER; the guard below fails the
+          # job if this list ever drifts from the set of shipped workspace packages.
+          export PUBLISH_ORDER="@smithy-hono/security-core @smithy-hono/data-core @smithy-hono/realtime @smithy-hono/adapter-cf @smithy-hono/adapter-aws @smithy-hono/adapter-node @smithy-hono/adapter-postgres @smithy-hono/key-tool @smithy-hono/deploy-cf @smithy-hono/deploy-node @smithy-hono/deploy-aws @smithy-hono/mcp-core @smithy-hono/test-kit @smithy-hono/client-web @smithy-hono/create"
+          node -e '
+            const cp = require("child_process");
+            const shipped = Object.values(JSON.parse(cp.execSync("npm pkg get name --workspaces --json").toString())).sort();
+            const listed = process.env.PUBLISH_ORDER.trim().split(/\s+/).sort();
+            const missing = shipped.filter(n => !listed.includes(n));
+            const extra = listed.filter(n => !shipped.includes(n));
+            if (missing.length || extra.length) {
+              if (missing.length) console.error("PUBLISH_ORDER missing shipped package(s):", missing.join(", "));
+              if (extra.length) console.error("PUBLISH_ORDER lists non-workspace package(s):", extra.join(", "));
+              console.error("Update PUBLISH_ORDER before tagging.");
+              process.exit(1);
+            }
+            console.log("PUBLISH_ORDER covers all " + shipped.length + " shipped packages");
+          '
+          for pkg in $PUBLISH_ORDER; do
+            # Idempotent publish: if this exact version is already on npmjs (e.g. a
+            # prior run published npm but the Maven Central job failed, and we're
+            # re-running the same tag), skip it. npm refuses to publish over an
+            # existing version, which would otherwise dead-end the whole release and
+            # block the maven-central retry. `npm view pkg@ver version` prints the
+            # version if present, nothing if not.
+            if [ "$(npm view "$pkg@$TAG_VERSION" version 2>/dev/null)" = "$TAG_VERSION" ]; then
+              echo "--- $pkg@$TAG_VERSION already on npmjs — skipping ---"
+              continue
+            fi
+            echo "--- npm publish $pkg ---"
+            # --access public: scoped packages default to restricted. Provenance is
+            # emitted automatically under trusted publishing, so no --provenance flag.
+            npm publish -w "$pkg" --access public
+          done
+
+  publish-maven-central:
+    # Publishes the codegen JAR (com.smithy-hono:smithy-hono) to Maven Central via the
+    # Central Portal, using the vanniktech plugin wired in build.gradle.kts. Unlike the
+    # npm side there is NO OIDC for Central — auth is a Portal user token + a GPG key,
+    # both stored as GitHub secrets (see below). This is a Java-only build: the publish
+    # task graph (jar/sources/javadoc/sign) never touches Node, so it does not hit the
+    # pre-existing npmBuild issue.
+    needs: publish-npm
+    # Central publishes are effectively PERMANENT (no unpublish), so this job runs only
+    # after the recoverable npm publish succeeds. Add a required-reviewer rule to a
+    # GitHub Environment named `maven-central` (Settings → Environments) to also gate it
+    # behind manual approval — referenced here so the seam exists even before it's set up.
+    environment: maven-central
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Publish + release to Maven Central
+        # publishAndReleaseToMavenCentral uploads the staged deployment AND triggers the
+        # release in one shot. --no-configuration-cache: the vanniktech Central tasks are
+        # not configuration-cache compatible. The ORG_GRADLE_PROJECT_* env vars are how
+        # Gradle receives project properties; signingInMemoryKey being present is also
+        # what flips on signAllPublications() in build.gradle.kts.
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_SIGNING_KEY_PASSWORD }}

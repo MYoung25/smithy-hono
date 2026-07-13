@@ -1,0 +1,21 @@
+node_modules/
+dist/
+ui/dist/
+
+# Codegen output — regenerated from the Smithy model via `npm run codegen`.
+src/generated/
+
+# Gradle
+.gradle/
+build/
+
+# Deploy state + rendered/secret artifacts (never commit these).
+.smithy-deploy/
+wrangler.toml
+deploy.secrets.json
+*.tgz
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/

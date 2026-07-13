@@ -1,0 +1,25 @@
+{
+  "//": "Consumer smithy-build.json. With Gradle, the `maven` block below is NOT",
+  "//gradle": "needed (the plugin jar comes from the `smithyBuild` configuration in",
+  "//gradle2": "build.gradle.kts). Keep the `maven` block only for the Smithy CLI path.",
+  "//central": "The plugin publishes to Maven Central (a default Maven repo) with the",
+  "//central2": "next release, so no repositories entry is needed once it lands. Until",
+  "//central3": "then, `./gradlew publishToMavenLocal` in a clone of this repo makes it",
+  "//central4": "resolvable from ~/.m2 (no auth or token in any case).",
+  "//output": "NOTE: `outputDirectory` is NOT honored by the Smithy Gradle plugin —",
+  "//output2": "generated code lands in build/smithyprojections/<root>/source/hono-codegen/.",
+  "//output3": "Use the syncGeneratedCode task from build.gradle.kts.example to copy it.",
+  "version": "1.0",
+  "sources": ["model"],
+  "maven": {
+    "dependencies": ["com.smithy-hono:smithy-hono:0.2.2"]
+  },
+  "plugins": {
+    "hono-codegen": {
+      "service": "com.example#MyService",
+      "outputDirectory": "generated",
+      "packageName": "my-service-generated",
+      "packageVersion": "0.1.0"
+    }
+  }
+}

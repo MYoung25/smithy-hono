@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "deploy": "{{DEPLOY_BIN}}",
+    "start": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@smithy-hono/adapter-node": "^{{SH_VERSION}}",
+    "ioredis": "^5.4.0"
+  },
+  "devDependencies": {
+    "@smithy-hono/deploy-node": "^{{SH_VERSION}}"
+  }
+}

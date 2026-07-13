@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="smithy-hono logo">
+  <defs>
+    <linearGradient id="shlg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff7a1f"/>
+      <stop offset="1" stop-color="#d35400"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="30" height="30" rx="7" fill="url(#shlg)"/>
+  <path d="M16 6 l7 4 v8 l-7 4 -7-4 v-8 z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" opacity="0.5"/>
+  <path d="M16 10 c3 3 4 5 4 7 a4 4 0 0 1 -8 0 c0-1.5 1.2-3.2 4-7 z" fill="#fff"/>
+</svg>

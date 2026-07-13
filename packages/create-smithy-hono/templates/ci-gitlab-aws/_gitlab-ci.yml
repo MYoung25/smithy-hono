@@ -1,0 +1,82 @@
+# CI/CD for {{APP_SLUG}} — AWS target (CDK: Lambda + DynamoDB + CloudFront).
+#
+#   build   runs on every push + merge request: Smithy codegen (JDK 21), typecheck,
+#           unit tests, and the SPA build (full-stack only). No credentials needed.
+#   deploy  runs only on the default branch, after a green build: exchanges a GitLab
+#           OIDC id_token for temporary AWS credentials (keyless — no stored AWS keys)
+#           and runs the CDK deploy.
+#
+# One-time keyless setup:
+#   1. Create a GitLab OIDC identity provider in your AWS account
+#      (host = your GitLab instance, e.g. gitlab.com; audience = that same URL).
+#   2. Create a deploy role trusting this project (sub like
+#      `project_path:<group>/<project>:ref_type:branch:ref:main`) with permissions for
+#      CloudFormation/Lambda/DynamoDB/S3/CloudFront (and `cdk bootstrap` run once).
+#   3. Set these (Settings → CI/CD → Variables):
+#      AWS_DEPLOY_ROLE_ARN   arn of the role from step 2
+#      AWS_REGION            deploy region, e.g. us-east-1
+#      DEPLOY_DOMAIN         custom domain (optional; also needs a us-east-1 ACM cert
+#                            wired in smithy-aws-deploy.config.mjs)
+#      OIDC_CLIENT_SECRET    OIDC apps only — IdP confidential client secret (masked);
+#                            unset for the anonymous scaffold (the step no-ops)
+
+stages: [build, deploy]
+
+default:
+  image: node:24
+  cache:
+    key:
+      files: [package-lock.json]
+    paths: [.npm/]
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+.with-jdk: &with-jdk
+  - apt-get update -qq && apt-get install -y -qq openjdk-21-jdk-headless > /dev/null
+
+build:
+  stage: build
+  script:
+    - *with-jdk
+    - npm install
+    - npm run codegen
+    - npm run typecheck
+    - npm test
+    - npm run build:ui --if-present
+
+deploy:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "merge_request_event"'
+  # GitLab mints this JWT for the job; AWS STS trades it for temporary credentials.
+  id_tokens:
+    AWS_ID_TOKEN:
+      aud: https://gitlab.com
+  environment:
+    name: production
+    url: https://$DEPLOY_DOMAIN
+  script:
+    - *with-jdk
+    - apt-get install -y -qq awscli > /dev/null
+    # Exchange the GitLab OIDC token for temporary AWS creds (keyless).
+    - >
+      export $(aws sts assume-role-with-web-identity
+      --role-arn "$AWS_DEPLOY_ROLE_ARN"
+      --role-session-name "gitlab-{{APP_SLUG}}-$CI_PIPELINE_ID"
+      --web-identity-token "$AWS_ID_TOKEN"
+      --duration-seconds 3600
+      --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
+      --output text | awk '{print "AWS_ACCESS_KEY_ID="$1"\nAWS_SECRET_ACCESS_KEY="$2"\nAWS_SESSION_TOKEN="$3}')
+    - npm install
+    - npm run codegen
+    - |
+      if [ -n "$OIDC_CLIENT_SECRET" ]; then
+        node -e 'require("fs").writeFileSync("deploy.secrets.json", JSON.stringify({ OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET }))'
+      fi
+    - |
+      if [ -n "$DEPLOY_DOMAIN" ]; then
+        npm run deploy -- "$DEPLOY_DOMAIN"
+      else
+        npm run deploy
+      fi

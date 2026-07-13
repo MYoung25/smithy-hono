@@ -1,0 +1,92 @@
+# CI/CD for {{APP_SLUG}} — Cloudflare Workers target.
+#
+#   build   runs on every push + pull request: Smithy codegen (JDK 21), typecheck,
+#           unit tests, and the SPA build (full-stack only). No credentials needed.
+#   deploy  runs only on push to `main`, after a green build: provisions + deploys
+#           the Worker (and same-origin SPA) via `npm run deploy`.
+#
+# Configure these before the first deploy (Settings → Secrets and variables → Actions):
+#   Secrets:
+#     CLOUDFLARE_API_TOKEN    a token with Workers + D1 + KV edit rights (wrangler auth)
+#     CLOUDFLARE_ACCOUNT_ID   your Cloudflare account id
+#     OIDC_CLIENT_SECRET      OIDC apps only — your IdP's confidential client secret
+#                             (leave unset for the anonymous scaffold; the step below no-ops)
+#   Variables:
+#     DEPLOY_DOMAIN           the domain to deploy to (an ACTIVE zone on the account)
+#
+# Cloudflare has no GitHub-OIDC federation for wrangler, so the API token is the
+# keyless-as-it-gets path here; scope it tightly and store it as a secret.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install
+        run: npm install
+      - name: Codegen (Smithy → src/generated)
+        run: npm run codegen
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Build UI (full-stack only)
+        run: npm run build:ui --if-present
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # A GitHub "production" environment gives you a deployment record now and a
+    # one-click place to add a required-reviewer gate later — no gate by default.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install
+        run: npm install
+      - name: Codegen (Smithy → src/generated)
+        run: npm run codegen
+      - name: Materialize deploy secrets (OIDC apps)
+        # Writes the gitignored deploy.secrets.json the deploy CLI syncs to the
+        # platform. No-op for the anonymous scaffold (secret unset → skipped).
+        run: |
+          if [ -n "$OIDC_CLIENT_SECRET" ]; then
+            node -e 'require("fs").writeFileSync("deploy.secrets.json", JSON.stringify({ OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET }))'
+          fi
+        env:
+          OIDC_CLIENT_SECRET: ${{ secrets.OIDC_CLIENT_SECRET }}
+      - name: Deploy
+        # Builds the SPA (config buildCommand), provisions D1/KV, and deploys the Worker.
+        run: |
+          if [ -n "$DEPLOY_DOMAIN" ]; then
+            npm run deploy -- "$DEPLOY_DOMAIN"
+          else
+            npm run deploy
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DEPLOY_DOMAIN: ${{ vars.DEPLOY_DOMAIN }}

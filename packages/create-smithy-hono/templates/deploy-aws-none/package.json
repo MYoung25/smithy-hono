@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "deploy": "{{DEPLOY_BIN}}"
+  },
+  "dependencies": {
+    "@smithy-hono/adapter-aws": "^{{SH_VERSION}}",
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0"
+  },
+  "devDependencies": {
+    "@smithy-hono/deploy-aws": "^{{SH_VERSION}}"
+  }
+}

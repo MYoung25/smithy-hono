@@ -1,0 +1,15 @@
+{
+  /*
+   * The self-contained CDK app under `cdk/` is shipped AS SOURCE (files:["cdk"])
+   * and run by the CLI via `npx tsx cdk/app.ts`. It imports `aws-cdk-lib` /
+   * `constructs`, so it is typechecked SEPARATELY from the published library +
+   * CLI (tsconfig.build.json, which compiles only `src/`). This keeps the
+   * publishable lib typechecking without needing the (heavy) aws-cdk-lib types.
+   */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["cdk"]
+}

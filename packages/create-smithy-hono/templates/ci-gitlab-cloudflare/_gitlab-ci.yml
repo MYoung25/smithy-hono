@@ -1,0 +1,67 @@
+# CI/CD for {{APP_SLUG}} — Cloudflare Workers target.
+#
+#   build   runs on every push + merge request: Smithy codegen (JDK 21), typecheck,
+#           unit tests, and the SPA build (full-stack only). No credentials needed.
+#   deploy  runs only on the default branch, after a green build: provisions +
+#           deploys the Worker (and same-origin SPA) via `npm run deploy`.
+#
+# Configure before the first deploy (Settings → CI/CD → Variables):
+#   CLOUDFLARE_API_TOKEN   token with Workers + D1 + KV edit rights (masked)
+#   CLOUDFLARE_ACCOUNT_ID  your Cloudflare account id
+#   DEPLOY_DOMAIN          the domain to deploy to (an ACTIVE zone on the account)
+#   OIDC_CLIENT_SECRET     OIDC apps only — IdP confidential client secret (masked);
+#                          leave unset for the anonymous scaffold (the step no-ops)
+#
+# Cloudflare has no GitLab-OIDC federation for wrangler, so the API token is the
+# keyless-as-it-gets path here; store it masked and scope it tightly.
+
+stages: [build, deploy]
+
+default:
+  image: node:24
+  # Cache npm downloads across jobs keyed by the lockfile.
+  cache:
+    key:
+      files: [package-lock.json]
+    paths: [.npm/]
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+# Install a JDK 21 for the Smithy codegen step (the base image is Node-only).
+.with-jdk: &with-jdk
+  - apt-get update -qq && apt-get install -y -qq openjdk-21-jdk-headless > /dev/null
+
+build:
+  stage: build
+  script:
+    - *with-jdk
+    - npm install
+    - npm run codegen
+    - npm run typecheck
+    - npm test
+    - npm run build:ui --if-present
+
+deploy:
+  stage: deploy
+  # Default branch only, and never for merge-request pipelines.
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "merge_request_event"'
+  environment:
+    name: production
+    url: https://$DEPLOY_DOMAIN
+  script:
+    - *with-jdk
+    - npm install
+    - npm run codegen
+    # Materialize the gitignored deploy.secrets.json for OIDC apps (no-op otherwise).
+    - |
+      if [ -n "$OIDC_CLIENT_SECRET" ]; then
+        node -e 'require("fs").writeFileSync("deploy.secrets.json", JSON.stringify({ OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET }))'
+      fi
+    - |
+      if [ -n "$DEPLOY_DOMAIN" ]; then
+        npm run deploy -- "$DEPLOY_DOMAIN"
+      else
+        npm run deploy
+      fi

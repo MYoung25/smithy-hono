@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "sources": ["model"],
+  "plugins": {
+    "hono-codegen": {
+      "service": "com.example#NoteService",
+      "outputDirectory": "src/generated",
+      "packageName": "{{APP_SLUG}}",
+      "packageVersion": "0.1.0"
+    }
+  }
+}

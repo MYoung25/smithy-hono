@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "deploy": "{{DEPLOY_BIN}}",
+    "cf:dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@smithy-hono/adapter-cf": "^{{SH_VERSION}}"
+  },
+  "devDependencies": {
+    "@smithy-hono/deploy-cf": "^{{SH_VERSION}}",
+    "wrangler": "^4.20.0"
+  }
+}
